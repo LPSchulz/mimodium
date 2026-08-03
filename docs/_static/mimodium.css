@@ -1,0 +1,164 @@
+html {
+  --pst-sidebar-secondary: clamp(15rem, calc(25vw - 8rem), 28rem);
+}
+
+@font-face {
+  font-family: "Go Medium";
+  src: url("brand/font/Go-Medium.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+.navbar-brand.logo {
+  gap: 0.3rem;
+}
+
+.navbar-brand .logo__image {
+  height: 2.5rem;
+  max-width: 2.5rem;
+}
+
+.navbar-brand .logo__title {
+  color: #29366f;
+  font-family: "Go Medium", sans-serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+}
+
+html[data-theme="dark"] .navbar-brand .logo__title {
+  color: #f2f4ff;
+}
+
+@media (min-width: 960px) {
+  .bd-page-width {
+    max-width: 90rem;
+  }
+
+  .bd-sidebar-primary {
+    flex: 0 0 12rem;
+    width: 12rem;
+  }
+
+  .bd-sidebar-secondary {
+    flex: 0 0 var(--pst-sidebar-secondary);
+    width: var(--pst-sidebar-secondary);
+  }
+}
+
+@media (min-width: 90rem) {
+  .bd-page-width {
+    /* max-width: clamp(120rem, 100vw, 136rem); */
+    max-width: 140rem;
+  }
+}
+
+.bd-main .bd-content .bd-article-container {
+  max-width: 88rem;
+}
+
+.bd-article dl.py.class+dl.py.class {
+  border-top: 1px solid var(--pst-color-border);
+  margin-top: 2rem;
+  padding-top: 2rem;
+}
+
+.bd-article dl.py.class>dd>dl.py.attribute {
+  margin: 0.25rem 0;
+}
+
+.bd-article dl.py.class>dd>dl.py.attribute:first-of-type {
+  border-top: 1px solid var(--pst-color-border);
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+}
+
+.bd-article dl.py.class>dd>dl.py.attribute:first-of-type::before {
+  content: "Parameters:";
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.bd-article dl.py.class>dd>dl.py.attribute+dl.py.method {
+  border-top: 1px solid var(--pst-color-border);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.mimodium-semantic-type-table {
+  table-layout: auto;
+  width: 100%;
+}
+
+.mimodium-semantic-type-table th:nth-child(1),
+.mimodium-semantic-type-table td:nth-child(1) {
+  min-width: 15rem;
+  width: 1%;
+}
+
+.mimodium-semantic-type-table th:nth-child(2),
+.mimodium-semantic-type-table td:nth-child(2) {
+  width: 1%;
+}
+
+.mimodium-semantic-type-table th:nth-child(3),
+.mimodium-semantic-type-table td:nth-child(3) {
+  width: auto;
+}
+
+.mimodium-semantic-type-table td:nth-child(2) dl.field-list {
+  column-gap: 0.4rem;
+  display: inline-grid;
+  grid-template-columns: max-content max-content;
+  margin: 0.15rem 0 0;
+  row-gap: 0.1rem;
+  width: max-content;
+}
+
+.mimodium-semantic-type-table td:nth-child(2) dl.field-list>dt {
+  padding: 0;
+  white-space: nowrap;
+  word-break: normal;
+}
+
+.mimodium-semantic-type-table td:nth-child(2) dl.field-list>dd {
+  margin: 0;
+  padding: 0;
+}
+
+.mimodium-semantic-type-table td:nth-child(2) dl.field-list>dd>p {
+  margin: 0;
+}
+
+.mimodium-semantic-type-table td:nth-child(2) dl.field-list code {
+  white-space: nowrap;
+}
+
+.mimodium-semantic-type-table td:nth-child(1) details.sd-dropdown {
+  border: 1px solid var(--pst-color-border) !important;
+  border-left: 0 !important;
+  border-radius: 0.2rem;
+  box-shadow: none !important;
+  font-size: 0.82rem;
+  margin: 0.25rem 0 0 !important;
+}
+
+.mimodium-semantic-type-table td:nth-child(1) details.sd-dropdown summary.sd-card-header {
+  background-color: var(--pst-color-on-background) !important;
+  border-left-width: 0.15rem !important;
+  font-weight: 500;
+  padding: 0.18rem 0.4rem;
+}
+
+.mimodium-semantic-type-table td:nth-child(1) details.sd-dropdown .sd-summary-content {
+  background-color: var(--pst-color-on-background);
+  font-size: 0.82rem;
+  padding: 0.25rem 0.45rem 0.3rem;
+}
+
+.mimodium-semantic-type-table td:nth-child(1) details.sd-dropdown ul {
+  margin-bottom: 0;
+  padding-left: 1rem;
+}

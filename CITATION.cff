@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: >-
+  If you use Mimodium in a research publication, please cite the software
+  version and exact commit. This citation metadata will be updated to prefer
+  the companion paper before the public 0.1 release.
+title: "Mimodium: Cell-Free Massive MIMO Simulation Library"
+authors:
+  - family-names: Schulz
+    given-names: Leonard
+    email: leonard.schulz@tuhh.de
+version: 0.0.1
+license: GPL-3.0-or-later
+repository-code: "https://github.com/LPSchulz/mimodium"
+url: "https://mimodium.readthedocs.io/"
+abstract: >-
+  Mimodium is a Python research library for reproducible cell-free massive MIMO
+  system-level simulations. It provides Dagreon task components for scenario
+  generation, propagation and channel modeling, signal-processing algorithms,
+  evaluation metrics, and visualization.
+keywords:
+  - cell-free massive MIMO
+  - wireless communications
+  - system-level simulation
+  - reproducibility
