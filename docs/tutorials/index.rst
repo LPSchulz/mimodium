@@ -17,4 +17,4 @@ Sphinx-Gallery.
    :maxdepth: 1
    :hidden:
 
-   hello_world/plot_hello_world
+   hello_world/index

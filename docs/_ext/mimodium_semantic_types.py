@@ -297,10 +297,7 @@ def _build_aliases(app: Sphinx, warn_missing_docs: bool = False) -> list[TypeAli
         for alias in aliases
     ]
 
-    reference_targets: dict[str, tuple[str, str, str]] = {}
     for alias in aliases_with_usage:
-        for ref_name in _reference_names(alias):
-            reference_targets[ref_name] = (app.env.docname, alias.target_id, alias.name)
         if (
             warn_missing_docs
             and not alias.description_lines
@@ -314,7 +311,6 @@ def _build_aliases(app: Sphinx, warn_missing_docs: bool = False) -> list[TypeAli
             )
 
     app.env.mimodium_semantic_type_aliases = aliases_with_usage
-    app.env.mimodium_semantic_type_refs = reference_targets
     return aliases_with_usage
 
 
@@ -448,6 +444,7 @@ class MimodiumTypeCatalogDirective(SphinxDirective):
         _note_python_file_dependencies(self.env.app, package_root)
         aliases = _build_aliases(self.env.app, warn_missing_docs=True)
         self._register_python_type_targets(aliases)
+        self._register_reference_targets(aliases)
 
         preferred_order = list(self.env.app.config.mimodium_type_package_order)
         grouped: dict[str, list[TypeAliasInfo]] = {}
@@ -477,6 +474,17 @@ class MimodiumTypeCatalogDirective(SphinxDirective):
                     aliased=ref_name != alias.canonical_name,
                     location=(str(alias.path), alias.lineno),
                 )
+
+    def _register_reference_targets(self, aliases: list[TypeAliasInfo]) -> None:
+        reference_targets = getattr(self.env, "mimodium_semantic_type_refs", {}).copy()
+        for alias in aliases:
+            for ref_name in _reference_names(alias):
+                reference_targets[ref_name] = (
+                    self.env.docname,
+                    alias.target_id,
+                    alias.name,
+                )
+        self.env.mimodium_semantic_type_refs = reference_targets
 
 
 def _task_owner(obj: Any) -> Any | None:
@@ -572,6 +580,29 @@ def resolve_semantic_type_reference(
     )
 
 
+def prepare_semantic_types(app: Sphinx, env: Any, docnames: list[str]) -> None:
+    _build_aliases(app)
+
+
+def purge_semantic_type_references(app: Sphinx, env: Any, docname: str) -> None:
+    reference_targets = getattr(env, "mimodium_semantic_type_refs", {})
+    env.mimodium_semantic_type_refs = {
+        name: target
+        for name, target in reference_targets.items()
+        if target[0] != docname
+    }
+
+
+def merge_semantic_type_references(
+    app: Sphinx, env: Any, docnames: set[str], other: Any
+) -> None:
+    reference_targets = getattr(env, "mimodium_semantic_type_refs", {}).copy()
+    for name, target in getattr(other, "mimodium_semantic_type_refs", {}).items():
+        if target[0] in docnames:
+            reference_targets[name] = target
+    env.mimodium_semantic_type_refs = reference_targets
+
+
 def setup(app: Sphinx) -> dict[str, Any]:
     app.add_config_value("mimodium_type_package_root", "../mimodium", "env")
     app.add_config_value("mimodium_type_package_name", "mimodium", "env")
@@ -585,4 +616,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     app.connect("autodoc-process-docstring", process_task_call_docstring)
     app.connect("autodoc-process-signature", process_signature)
     app.connect("missing-reference", resolve_semantic_type_reference)
-    return {"version": "0.1", "parallel_read_safe": False, "parallel_write_safe": True}
+    app.connect("env-before-read-docs", prepare_semantic_types)
+    app.connect("env-purge-doc", purge_semantic_type_references)
+    app.connect("env-merge-info", merge_semantic_type_references)
+    return {"version": "0.1", "parallel_read_safe": True, "parallel_write_safe": True}
