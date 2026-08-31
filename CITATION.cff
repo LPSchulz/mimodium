@@ -12,6 +12,10 @@ authors:
     orcid: "https://orcid.org/0000-0003-3385-2034"
 version: 0.0.2
 date-released: "2026-08-31"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.22211987"
+    description: "Concept DOI for all versions of Mimodium"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/LPSchulz/mimodium"
 url: "https://mimodium.readthedocs.io/"

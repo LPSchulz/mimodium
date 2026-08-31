@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/1321933580.svg)](https://doi.org/10.5281/zenodo.22211987)
 <p align="center">
   <img src="docs/_static/brand/mimodium-logo.svg" alt="Mimodium" width="720">
 </p>
@@ -89,8 +90,9 @@ pixi run sphinx-build -E -W --keep-going -b html docs docs/_build/html
 
 Mimodium is licensed under `GPL-3.0-or-later`; see [LICENSE](LICENSE).
 
-If you use Mimodium in a research publication, cite the software version and
-exact commit using [CITATION.cff](CITATION.cff).
+If you use Mimodium in a research publication, cite the specific software
+version archived on [Zenodo](https://doi.org/10.5281/zenodo.22211987) using
+the metadata in [CITATION.cff](CITATION.cff).
 
 Mimodium is pre-release research software. Its API and numerical behavior may
 continue to evolve; pin exact versions and commits for reproducible studies.
