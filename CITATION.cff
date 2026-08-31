@@ -1,14 +1,17 @@
 cff-version: 1.2.0
+type: software
 message: >-
-  If you use Mimodium in a research publication, please cite the software
-  version and exact commit. This citation metadata will be updated to prefer
-  the companion paper before the public 0.1 release.
+  If you use Mimodium in a research publication, please cite the specific
+  software version archived on Zenodo.
 title: "Mimodium: Cell-Free Massive MIMO Simulation Library"
 authors:
   - family-names: Schulz
-    given-names: Leonard
+    given-names: Leonard Paul
+    affiliation: "Hamburg University of Technology"
     email: leonard.schulz@tuhh.de
-version: 0.0.1
+    orcid: "https://orcid.org/0000-0003-3385-2034"
+version: 0.0.2
+date-released: "2026-08-31"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/LPSchulz/mimodium"
 url: "https://mimodium.readthedocs.io/"
@@ -19,6 +22,7 @@ abstract: >-
   evaluation metrics, and visualization.
 keywords:
   - cell-free massive MIMO
+  - distributed massive MIMO
   - wireless communications
   - system-level simulation
-  - reproducibility
+  - reproducible research
