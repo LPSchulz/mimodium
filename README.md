@@ -28,25 +28,36 @@ python -m pip install .
 
 ## Development
 
-Create and activate a virtual environment from the repository root:
+The recommended development environment uses
+[Pixi](https://pixi.sh/). From the repository root, install the locked
+environment and the editable Mimodium package with:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-Then install Mimodium and its development dependencies:
-
-```bash
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
+pixi install
 ```
 
 Check formatting and lint the package, tests, and documentation with:
 
 ```bash
-ruff format --check src tests docs
-ruff check src tests docs
+pixi run format-check
+pixi run lint
+```
+
+Before merging a release commit or publishing a GitHub release, run the same
+release checks used by the publishing workflow:
+
+```bash
+pixi run release-check
+```
+
+Developers who do not use Pixi can instead create a virtual environment and
+install the development extra directly:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
 ```
 
 ## Testing
@@ -54,7 +65,7 @@ ruff check src tests docs
 Run the complete test suite with:
 
 ```bash
-pytest
+pixi run test
 ```
 
 ## Building the Documentation
@@ -62,7 +73,7 @@ pytest
 Build a local HTML preview with:
 
 ```bash
-sphinx-build -b html docs docs/_build/html
+pixi run sphinx-build -b html docs docs/_build/html
 ```
 
 The generated documentation is written to `docs/_build/html`.
@@ -71,7 +82,7 @@ For release validation, build the documentation with warnings treated as
 errors:
 
 ```bash
-sphinx-build -E -W --keep-going -b html docs docs/_build/html
+pixi run sphinx-build -E -W --keep-going -b html docs docs/_build/html
 ```
 
 ## License and Citation
