@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mimodium"
-version = "0.0.1"
+version = "0.0.2"
 authors = [{ name = "Leonard Schulz", email = "leonard.schulz@tuhh.de" }]
 description = "Reproducible system-level simulations for distributed massive MIMO research."
 readme = "README.md"
