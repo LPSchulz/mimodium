@@ -1,10 +1,23 @@
 r"""Evaluate channel hardening and favorable propagation.
 
-The definitions follow Section 2.6 of Demir, Björnson, and Sanguinetti,
-*Foundations of User-Centric Cell-Free Massive MIMO* (2021).  For an effective
-desired channel :math:`z_{kk}` and an effective interfering channel
-:math:`z_{ki}`, the finite-dimensional quantities corresponding to the
-definitions in the book are
+Two complementary favorable-propagation metrics are provided.  The classical
+physical-channel metric measures the symmetric, normalized overlap between UE
+channel vectors,
+
+.. math::
+
+   \mathrm{FP}_{ki}
+   =
+   \frac{
+     \mathbb{E}\{|\mathbf{h}_k^{\mathrm{H}}\mathbf{h}_i|^2\}
+   }{
+     \mathbb{E}\{\|\mathbf{h}_k\|^2\}
+     \mathbb{E}\{\|\mathbf{h}_i\|^2\}
+   }.
+
+The effective metric instead evaluates the interference created after the
+configured combining or precoding.  For an effective desired channel
+:math:`z_{kk}` and an effective interfering channel :math:`z_{ki}`, it is
 
 .. math::
 
@@ -34,13 +47,11 @@ propagation matrix compare distinct UEs; entry :math:`[k,k]` equals
 :math:`1+\mathrm{CH}_k`.  A metric is ``nan`` when the mean desired effective
 channel is zero, since the normalization is then undefined.
 
-Unlike the book's introductory derivation, the effective channels used here
-are produced by Mimodium's configured combining/precoding directions.  The
-contributions from the CPUs participating in a detector or transmitted stream
-are added coherently.  Consequently, selecting maximum-ratio processing
-recovers the classical quantities, while interference-suppressing processing
-measures the properties of the channel that the selected algorithm actually
-creates.
+The effective channels are produced by Mimodium's configured combining or
+precoding directions, and contributions from participating CPUs are added
+coherently.  The effective metric is directional and includes both channel
+overlap and relative effective-channel strength; the classical metric is
+symmetric and invariant to separate deterministic scaling of the UE channels.
 """
 
 import numpy as np
@@ -50,9 +61,9 @@ from ..algorithms import EffectiveDownlinkChannels, EffectiveUplinkChannels
 from ..propagation import ChannelRealizations, NumRealizations
 from ..scenario import NumAntennasPerAP, NumAPs, NumUEs
 
-#: Pairwise favorable-propagation metric for physical channels.
+#: Symmetric favorable-propagation metric for physical UE channels.
 #:
-#: Entry ``[k, i]`` is UE :math:`k`'s metric with respect to UE :math:`i`.
+#: Entry ``[k, i]`` is their normalized mean-squared channel overlap.
 #: The diagonal is the normalized second moment of the desired channel and is
 #: therefore equal to one plus the corresponding channel-hardening metric.
 #:
@@ -86,51 +97,6 @@ type EffectiveUplinkFavorablePropagationMetrics = np.ndarray
 type EffectiveDownlinkFavorablePropagationMetrics = np.ndarray
 
 
-def _compute_channel_hardening(
-    desired_effective_channels: np.ndarray,
-) -> np.ndarray:
-    """Compute normalized desired-channel variances over the last axis."""
-    expected_desired = np.mean(desired_effective_channels, axis=-1)
-    desired_variances = np.mean(
-        np.abs(desired_effective_channels - expected_desired[..., np.newaxis]) ** 2,
-        axis=-1,
-    )
-    denominator = np.abs(expected_desired) ** 2
-    values = np.full(denominator.shape, np.nan, dtype=float)
-    np.divide(desired_variances, denominator, out=values, where=denominator > 0)
-    return values
-
-
-def _compute_favorable_propagation(
-    effective_channels: np.ndarray,
-) -> np.ndarray:
-    """Compute normalized effective-channel second moments over the last axis."""
-    expected_desired = np.mean(
-        np.diagonal(effective_channels, axis1=0, axis2=1),
-        axis=0,
-    )
-    denominator = np.abs(expected_desired) ** 2
-    second_moments = np.mean(np.abs(effective_channels) ** 2, axis=-1)
-    values = np.full(second_moments.shape, np.nan, dtype=float)
-    np.divide(
-        second_moments,
-        denominator[:, np.newaxis],
-        out=values,
-        where=denominator[:, np.newaxis] > 0,
-    )
-    return values
-
-
-def _sum_effective_uplink_channels(g: EffectiveUplinkChannels) -> np.ndarray:
-    """Coherently add serving-CPU contributions into shape ``(K, K, O)``."""
-    return np.stack([np.sum(g_k, axis=1) for g_k in g])
-
-
-def _sum_effective_downlink_channels(f: EffectiveDownlinkChannels) -> np.ndarray:
-    """Coherently add serving-CPU contributions into shape ``(K, K, O)``."""
-    return np.stack([np.stack([np.sum(f_ki, axis=0) for f_ki in f_k]) for f_k in f])
-
-
 @task
 class ComputeEffectiveUplinkChannelHardening:
     r"""Compute hardening after the configured uplink combining.
@@ -148,9 +114,17 @@ class ComputeEffectiveUplinkChannelHardening:
     def __call__(
         self, g: EffectiveUplinkChannels
     ) -> EffectiveUplinkChannelHardeningMetrics:
-        effective_channels = _sum_effective_uplink_channels(g)
+        effective_channels = np.stack([np.sum(g_k, axis=1) for g_k in g])
         desired = np.diagonal(effective_channels, axis1=0, axis2=1).T
-        return _compute_channel_hardening(desired)
+        expected_desired = np.mean(desired, axis=-1)
+        desired_variances = np.mean(
+            np.abs(desired - expected_desired[:, np.newaxis]) ** 2,
+            axis=-1,
+        )
+        denominator = np.abs(expected_desired) ** 2
+        values = np.full(denominator.shape, np.nan, dtype=float)
+        np.divide(desired_variances, denominator, out=values, where=denominator > 0)
+        return values
 
 
 @task
@@ -170,9 +144,19 @@ class ComputeEffectiveDownlinkChannelHardening:
     def __call__(
         self, f: EffectiveDownlinkChannels
     ) -> EffectiveDownlinkChannelHardeningMetrics:
-        effective_channels = _sum_effective_downlink_channels(f)
+        effective_channels = np.stack(
+            [np.stack([np.sum(f_ki, axis=0) for f_ki in f_k]) for f_k in f]
+        )
         desired = np.diagonal(effective_channels, axis1=0, axis2=1).T
-        return _compute_channel_hardening(desired)
+        expected_desired = np.mean(desired, axis=-1)
+        desired_variances = np.mean(
+            np.abs(desired - expected_desired[:, np.newaxis]) ** 2,
+            axis=-1,
+        )
+        denominator = np.abs(expected_desired) ** 2
+        values = np.full(denominator.shape, np.nan, dtype=float)
+        np.divide(desired_variances, denominator, out=values, where=denominator > 0)
+        return values
 
 
 @task
@@ -198,12 +182,31 @@ class ComputeEffectiveUplinkFavorablePropagation:
     The off-diagonal entries quantify favorable propagation.  A second moment,
     rather than only a variance, is used so that coherent interference created
     by channel estimation or the selected combiner is not discarded.
+
+    This metric adapts the effective-channel definition in Section 2.6.2 of
+    `Demir, Björnson, and Sanguinetti (2021)
+    <https://doi.org/10.1561/2000000109>`_ to Mimodium's configured uplink
+    combining and CPU fusion.
     """
 
     def __call__(
         self, g: EffectiveUplinkChannels
     ) -> EffectiveUplinkFavorablePropagationMetrics:
-        return _compute_favorable_propagation(_sum_effective_uplink_channels(g))
+        effective_channels = np.stack([np.sum(g_k, axis=1) for g_k in g])
+        expected_desired = np.mean(
+            np.diagonal(effective_channels, axis1=0, axis2=1),
+            axis=0,
+        )
+        denominator = np.abs(expected_desired) ** 2
+        second_moments = np.mean(np.abs(effective_channels) ** 2, axis=-1)
+        values = np.full(second_moments.shape, np.nan, dtype=float)
+        np.divide(
+            second_moments,
+            denominator[:, np.newaxis],
+            out=values,
+            where=denominator[:, np.newaxis] > 0,
+        )
+        return values
 
 
 @task
@@ -229,12 +232,32 @@ class ComputeEffectiveDownlinkFavorablePropagation:
     The off-diagonal entries quantify favorable propagation.  The CPU set in
     the numerator belongs to transmitted stream :math:`i`, as encoded by
     :type:`EffectiveDownlinkChannels`.
+
+    This metric adapts Definition 2.6.4 of `Demir, Björnson, and Sanguinetti
+    (2021) <https://doi.org/10.1561/2000000109>`_ by using the effective
+    channels produced by Mimodium's configured downlink precoding.
     """
 
     def __call__(
         self, f: EffectiveDownlinkChannels
     ) -> EffectiveDownlinkFavorablePropagationMetrics:
-        return _compute_favorable_propagation(_sum_effective_downlink_channels(f))
+        effective_channels = np.stack(
+            [np.stack([np.sum(f_ki, axis=0) for f_ki in f_k]) for f_k in f]
+        )
+        expected_desired = np.mean(
+            np.diagonal(effective_channels, axis1=0, axis2=1),
+            axis=0,
+        )
+        denominator = np.abs(expected_desired) ** 2
+        second_moments = np.mean(np.abs(effective_channels) ** 2, axis=-1)
+        values = np.full(second_moments.shape, np.nan, dtype=float)
+        np.divide(
+            second_moments,
+            denominator[:, np.newaxis],
+            out=values,
+            where=denominator[:, np.newaxis] > 0,
+        )
+        return values
 
 
 @task
@@ -256,24 +279,54 @@ class ComputeChannelHardening:
     ) -> ChannelHardeningMetrics:
         h_flat = h.reshape(K, L * N, O)
         desired = np.sum(np.abs(h_flat) ** 2, axis=1)
-        return _compute_channel_hardening(desired)
+        expected_desired = np.mean(desired, axis=-1)
+        desired_variances = np.mean(
+            np.abs(desired - expected_desired[:, np.newaxis]) ** 2,
+            axis=-1,
+        )
+        denominator = np.abs(expected_desired) ** 2
+        values = np.full(denominator.shape, np.nan, dtype=float)
+        np.divide(desired_variances, denominator, out=values, where=denominator > 0)
+        return values
 
 
 @task
 class ComputeFavorablePropagation:
-    r"""Compute the classical perfect-CSI MR favorable-propagation reference.
+    r"""Compute classical favorable propagation between physical UE channels.
 
-    Entry ``[k, i]`` uses
-    :math:`z_{ki}=\sum_l\mathbf{h}_{kl}^{\mathrm{H}}\mathbf{h}_{il}`.
-    Prefer :class:`ComputeEffectiveUplinkFavorablePropagation` or
-    :class:`ComputeEffectiveDownlinkFavorablePropagation` when evaluating a
-    configured combining scheme.
+    Entry ``[k, i]`` is
+
+    .. math::
+
+       \frac{
+         \mathbb{E}\{|\mathbf{h}_k^{\mathrm{H}}\mathbf{h}_i|^2\}
+       }{
+         \mathbb{E}\{\|\mathbf{h}_k\|^2\}
+         \mathbb{E}\{\|\mathbf{h}_i\|^2\}
+       }.
+
+    This is a finite-dimensional, power-normalized measure of the pairwise
+    channel orthogonality used to define favorable propagation by `Ngo,
+    Larsson, and Marzetta (2014) <https://arxiv.org/abs/1403.3461>`_.  The
+    symmetric normalization also corresponds to the finite-dimensional metric
+    in Section 2.5.2 of `Björnson, Hoydis, and Sanguinetti (2017)
+    <https://doi.org/10.1561/2000000093>`_.
     """
 
     def __call__(self, h: ChannelRealizations) -> FavorablePropagationMetrics:
-        effective_channels = np.einsum(
+        channel_inner_products = np.einsum(
             "klno,ilno->kio",
             np.conj(h),
             h,
         )
-        return _compute_favorable_propagation(effective_channels)
+        channel_powers = np.real(
+            np.mean(
+                np.diagonal(channel_inner_products, axis1=0, axis2=1),
+                axis=0,
+            )
+        )
+        denominator = channel_powers[:, np.newaxis] * channel_powers[np.newaxis, :]
+        second_moments = np.mean(np.abs(channel_inner_products) ** 2, axis=-1)
+        values = np.full(second_moments.shape, np.nan, dtype=float)
+        np.divide(second_moments, denominator, out=values, where=denominator > 0)
+        return values

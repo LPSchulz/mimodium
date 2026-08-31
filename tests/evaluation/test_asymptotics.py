@@ -18,6 +18,18 @@ def normalized_second_moments(effective_channels):
     )
 
 
+def symmetric_normalized_second_moments(channel_inner_products):
+    channel_powers = np.real(
+        np.mean(
+            np.diagonal(channel_inner_products, axis1=0, axis2=1),
+            axis=0,
+        )
+    )
+    return np.mean(np.abs(channel_inner_products) ** 2, axis=-1) / (
+        channel_powers[:, np.newaxis] * channel_powers[np.newaxis, :]
+    )
+
+
 def test_channel_hardening_is_zero_for_realization_invariant_norms():
     channels = np.ones((2, 1, 2, 3), dtype=complex)
 
@@ -144,7 +156,7 @@ def test_effective_downlink_favorable_propagation_uses_transmitting_cpu_set():
     )
 
 
-def test_perfect_csi_maximum_ratio_recovers_classical_metrics():
+def test_perfect_csi_maximum_ratio_recovers_effective_metrics():
     samples = np.arange(1, 2 * 1 * 2 * 4 + 1).reshape(2, 1, 2, 4)
     h = samples + 1j * np.flip(samples, axis=-1) / 3
     mr_effective_channels = np.einsum("klno,ilno->kio", np.conj(h), h)
@@ -158,8 +170,6 @@ def test_perfect_csi_maximum_ratio_recovers_classical_metrics():
         O=4,
         h=h,
     )
-    classical_favorable = asymptotics.ComputeFavorablePropagation()(h)
-
     np.testing.assert_allclose(
         asymptotics.ComputeEffectiveUplinkChannelHardening()(g),
         classical_hardening,
@@ -170,11 +180,40 @@ def test_perfect_csi_maximum_ratio_recovers_classical_metrics():
     )
     np.testing.assert_allclose(
         asymptotics.ComputeEffectiveUplinkFavorablePropagation()(g),
-        classical_favorable,
+        normalized_second_moments(mr_effective_channels),
     )
     np.testing.assert_allclose(
         asymptotics.ComputeEffectiveDownlinkFavorablePropagation()(f),
-        classical_favorable,
+        normalized_second_moments(mr_effective_channels),
+    )
+
+
+def test_classical_favorable_propagation_is_symmetric_and_gain_invariant():
+    h = np.zeros((2, 1, 2, 2), dtype=complex)
+    h[0, 0, 0] = 1
+    h[1] = 2 * h[0]
+
+    values = asymptotics.ComputeFavorablePropagation()(h)
+
+    np.testing.assert_allclose(values, np.ones((2, 2)))
+    np.testing.assert_allclose(values, values.T)
+
+
+def test_classical_favorable_propagation_uses_symmetric_second_moments():
+    samples = np.arange(1, 2 * 1 * 2 * 4 + 1).reshape(2, 1, 2, 4)
+    h = samples + 1j * np.flip(samples, axis=-1) / 3
+    channel_inner_products = np.einsum("klno,ilno->kio", np.conj(h), h)
+
+    values = asymptotics.ComputeFavorablePropagation()(h)
+
+    np.testing.assert_allclose(
+        values,
+        symmetric_normalized_second_moments(channel_inner_products),
+    )
+    np.testing.assert_allclose(values, values.T)
+    np.testing.assert_allclose(
+        np.diag(values),
+        1 + asymptotics.ComputeChannelHardening()(K=2, L=1, N=2, O=4, h=h),
     )
 
 
